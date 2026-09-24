@@ -1,9 +1,11 @@
 # Using Canary in an existing application
 
-This guide is for adding Canary to an application that already has its own
-environment: a virtual environment or lockfile, a container image, CI, a
-configured model client with API keys, and its own storage. Canary is designed
-to plug into that environment without changing any of it.
+Canary is built to drop into an application that already exists — its virtual
+environment or lockfile, container image, CI, configured model client, API
+keys, and storage — without changing any of them. This guide shows how: what
+Canary needs (almost nothing), how to install it with the tools you already
+use, and how to connect a model judge while your credentials stay exactly
+where they are.
 
 ## 1. What Canary needs from your environment
 

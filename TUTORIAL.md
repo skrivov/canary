@@ -1,8 +1,15 @@
 # Canary tutorial
 
-This tutorial builds an evaluation workflow from deterministic comparison to
-calibrated model judging and artifact-safe run diffing. The examples target
-Canary 0.4.0 and Python 3.11 or newer.
+This tutorial takes one evaluation workflow from its first deterministic check
+to a calibrated LLM judge and a run diff you can defend in review. Along the
+way you will catch a silent failure, checkpoint results in an append-only
+ledger, freeze an experiment before running it, make a judge prove itself
+against hand-labelled examples, and re-score stored history without calling a
+model.
+
+The examples target Canary 0.4.0 and Python 3.11 or newer. Each section
+stands on its own. If the vocabulary is new, start with the
+[evaluation nomenclature](#evaluation-nomenclature).
 
 ## 1. Install Canary safely
 

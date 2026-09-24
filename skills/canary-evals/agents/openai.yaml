@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canary Evaluations"
+  short_description: "Build and verify evaluations with Canary"
+  default_prompt: "Use $canary-evals to implement and verify this Canary evaluation workflow."

@@ -56,6 +56,12 @@ honest when you land work.
   `tests/test_examples.py`.
 - Run `.venv/bin/python -m pytest -q` before calling anything done. There is
   no CI; the local suite is the gate.
+- A release moves every pin at once: the version in `pyproject.toml`, the
+  install commands in the docs and in `skills/canary-evals/`, and the
+  `version` and `ref` of the plugin entry in `.claude-plugin/marketplace.json`.
+  `tests/test_release_tooling.py` fails when one lags. Push the release tag
+  together with its commit: the Claude Code plugin fetches the skill from the
+  tag.
 - Adoption work inside an application happens in that application's
   repository under its own rules. Parity evidence (re-score reports) lives
   with the application that produced it.

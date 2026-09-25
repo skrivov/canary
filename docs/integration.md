@@ -123,7 +123,7 @@ python -c "import canary; print(canary.TAXONOMY_VERSION)"
 
 This prints `canary-taxonomy/1`. An `AttributeError` means the unrelated
 package was installed: uninstall `canary` and reinstall from the pinned
-source. The [Codex skill](../skills/canary-evals/SKILL.md) ships
+source. The [Canary agent skill](../skills/canary-evals/SKILL.md) ships
 `scripts/inspect_canary.py`, which checks the installed distribution (or a
 wheel file) for the right name, classifier, rubric seeds, and license notice.
 

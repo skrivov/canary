@@ -4,6 +4,17 @@ All notable changes to Canary are recorded here. Versions follow semantic
 versioning; while the major version is 0, a minor bump may change the public
 API, and every such change is listed with its migration.
 
+## Unreleased
+
+### Added
+
+- **Claude Code plugin.** This repository is now a Claude Code plugin
+  marketplace. `/plugin marketplace add skrivov/canary` followed by
+  `/plugin install canary@canary` installs the `canary-evals` skill from the
+  current release tag. The README explains which install fits whom: the
+  plugin, a personal skill folder (Codex now reads `~/.agents/skills`), or a
+  project skill folder committed with the code.
+
 ## 0.4.0 — 2026-09-24
 
 First public release.

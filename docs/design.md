@@ -51,6 +51,10 @@ source is also the dependency-confusion guard. Hermetic builds vendor the
 wheel inside their build context, which needs no network and makes each
 upgrade a visible diff. Runner-up: a registry release under a different
 distribution name — deferred until someone needs registry installs.
+The `canary-evals` agent skill ships from the same tags, as a plain folder or
+through the Claude Code plugin marketplace in `.claude-plugin/`, whose one
+entry pins the current release tag, so an agent's instructions always describe
+a released API.
 
 **D3 — Model seam: `ModelPort`, async, injected.** A protocol with one method,
 `generate_object(*, schema, messages, operation) -> Mapping`. The application

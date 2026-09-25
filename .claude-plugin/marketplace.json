@@ -1,0 +1,30 @@
+{
+  "name": "canary",
+  "description": "Canary's agent skill for Claude Code: evaluate LLM apps and agents with deterministic verdicts, calibrated judges, and run diffs checked against a recorded ruler.",
+  "owner": {
+    "name": "Sergey Krivov",
+    "url": "https://github.com/skrivov"
+  },
+  "plugins": [
+    {
+      "name": "canary",
+      "displayName": "Canary Evaluations",
+      "description": "The canary-evals skill: install Canary from a pinned source, extend your project's existing evaluations, calibrate LLM judges before they score, and re-score stored runs offline.",
+      "version": "0.4.0",
+      "source": {
+        "source": "github",
+        "repo": "skrivov/canary",
+        "ref": "v0.4.0"
+      },
+      "author": {
+        "name": "Sergey Krivov",
+        "url": "https://github.com/skrivov"
+      },
+      "homepage": "https://github.com/skrivov/canary#let-your-coding-agent-wire-it-in",
+      "repository": "https://github.com/skrivov/canary",
+      "license": "MIT",
+      "keywords": ["evaluation", "evals", "llm", "agents", "llm-as-a-judge", "calibration"],
+      "category": "development"
+    }
+  ]
+}

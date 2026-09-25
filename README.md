@@ -17,9 +17,10 @@ through the model client you already trust.
 ![Typed](https://img.shields.io/badge/types-py.typed-informational)
 
 [Quick start](#quick-start) ·
+[Agent skill](#let-your-coding-agent-wire-it-in) ·
 [Why evaluation](#why-evaluation-is-the-job-now) ·
 [What's inside](#whats-in-the-box) ·
-[The eval landscape](#where-canary-fits) ·
+[Compared with similar tools](#comparing-canary-with-similar-projects) ·
 [Integration guide](docs/integration.md) ·
 [Tutorial](TUTORIAL.md)
 
@@ -58,8 +59,8 @@ honestly, whether a change made things better.
 That's why evaluation has become one of the busiest corners of the AI stack.
 Observability platforms trace and chart every model call. Metric libraries
 ship dozens of ready-made scorers. Test runners red-team prompts in CI.
-Benchmark harnesses rank models on public suites. If you build with LLMs, you
-probably run one of them already — and you should.
+Benchmark harnesses rank models on public suites. How Canary compares with
+them is [laid out below](#comparing-canary-with-similar-projects).
 
 But the hardest questions in evaluation aren't about running *more* evals.
 They're about trusting the ones you have:
@@ -139,6 +140,12 @@ OpenAI SDKs live in [`examples/`](examples/).
 invocation, tool-response handling, and user friction — attributed, and inert
 until you calibrate them on your own data.
 
+🤖 **A skill for your coding agent.** The bundled `canary-evals` skill teaches
+Claude Code, Codex, and other agents that read
+[Agent Skills](https://agentskills.io) how to wire Canary into your project
+safely. [Install it](#let-your-coding-agent-wire-it-in) as a Claude Code
+plugin or as a plain skill folder.
+
 ## Quick start
 
 Canary installs straight from this repository (the name `canary` on PyPI
@@ -191,6 +198,94 @@ From a clone of this repository, two runnable scripts show the whole flow:
   `JUDGE_PROVIDER=openai` (with `OPENAI_API_KEY` and `JUDGE_MODEL`) to use a
   real one.
 
+## Let your coding agent wire it in
+
+Canary ships with an agent skill,
+[`canary-evals`](skills/canary-evals/SKILL.md), so your coding agent knows the
+library before it writes a line. Ask it to add an evaluation, and it will:
+
+- install Canary only from a pinned tag or wheel, never the unrelated PyPI
+  package, and check the installed copy with the skill's inspection script;
+- find the evaluation code your project already has and extend it, instead of
+  building a second stack beside it;
+- reach for a deterministic comparison first, and add an LLM judge only when
+  rules can't express the criterion — calibrated before it scores;
+- prove a migrated evaluator by re-scoring stored runs offline and requiring
+  identical verdicts;
+- keep API keys out of every Canary record, and ship each new grader with a
+  test that watches it fail.
+
+The skill is a plain folder in the open [Agent Skills](https://agentskills.io)
+format: instructions, two reference files, and one read-only inspection
+script. Install it one of three ways:
+
+| Install | Best for | What you get |
+| --- | --- | --- |
+| [Claude Code plugin](#claude-code-plugin) | Claude Code users who want the skill everywhere with the least effort | Two commands. The skill from the latest Canary release, pinned to its release tag. Update, disable, or remove it from `/plugin`. |
+| [Personal skill folder](#personal-skill-folder) | Codex users, users of Cursor, Gemini CLI, GitHub Copilot, and [other Agent Skills agents](https://agentskills.io/clients), and Claude Code users who prefer plain files | One copy for all your projects, pinned to the tag you choose. It changes only when you reinstall it. |
+| [Project skill folder](#project-skill-folder) | Teams | The skill lives in your repository, at the same release as the Canary in your lockfile. Every teammate and every clone gets the same instructions, and upgrades go through code review. |
+
+Pick one per agent: installing two of them loads the skill twice.
+
+### Claude Code plugin
+
+This repository doubles as a Claude Code plugin marketplace. In a Claude Code
+session, run:
+
+```text
+/plugin marketplace add skrivov/canary
+/plugin install canary@canary
+```
+
+From a shell, the same two steps are `claude plugin marketplace add
+skrivov/canary` and `claude plugin install canary@canary`. Then type
+`/canary:canary-evals`, or just describe the task: Claude loads the skill when
+the request matches.
+
+After a Canary release, run `claude plugin marketplace update canary` and then
+`claude plugin update canary@canary`, or turn on auto-update for the `canary`
+marketplace in `/plugin`.
+
+### Personal skill folder
+
+Take the skill from the same tag as the library, so its instructions match the
+API you have. For Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills
+curl -fsSL https://github.com/skrivov/canary/archive/refs/tags/v0.4.0.tar.gz |
+  tar -xzf - -C ~/.claude/skills --strip-components=2 canary-0.4.0/skills/canary-evals
+```
+
+Then type `/canary-evals`, or just describe the task. For Codex:
+
+```bash
+mkdir -p ~/.agents/skills
+curl -fsSL https://github.com/skrivov/canary/archive/refs/tags/v0.4.0.tar.gz |
+  tar -xzf - -C ~/.agents/skills --strip-components=2 canary-0.4.0/skills/canary-evals
+```
+
+Then mention `$canary-evals`, or let Codex pick the skill from your request.
+Other agents that read Agent Skills take the same folder in their own skills
+directory.
+
+### Project skill folder
+
+From your project's root, use the tag your lockfile pins and commit the
+result. Claude Code reads `.claude/skills`; Codex reads `.agents/skills`:
+
+```bash
+dir=.claude/skills   # for Codex: dir=.agents/skills
+mkdir -p "$dir"
+curl -fsSL https://github.com/skrivov/canary/archive/refs/tags/v0.4.0.tar.gz |
+  tar -xzf - -C "$dir" --strip-components=2 canary-0.4.0/skills/canary-evals
+git add "$dir/canary-evals"
+```
+
+To upgrade a folder install, delete `canary-evals` and rerun the command with
+the new tag. If an agent that was already running doesn't list the skill,
+restart it.
+
 ## Judges that earn trust
 
 An LLM judge in Canary cannot score until it has proven itself against your
@@ -242,32 +337,154 @@ flowchart LR
 Everything left of the verdicts and judges is yours; everything Canary returns
 is plain data for your own storage, dashboards, and CI gates.
 
-## Where Canary fits
+## What Canary does in your project
 
-Canary is not a platform. There's no server, no UI, and no trace store. It's
-the verdict layer — a library you embed — so it plays well with whatever you
-already run:
+Canary is a library, so it runs wherever your evaluation code already runs: a
+pytest suite, a CI job, a benchmark script, or a scheduled worker. These are
+the jobs it takes over:
 
-| If you need… | Great tools for it | What Canary adds |
-|---|---|---|
-| Tracing, datasets, experiment dashboards | [Arize Phoenix](https://github.com/Arize-ai/phoenix), [Langfuse](https://github.com/langfuse/langfuse), [Opik](https://github.com/comet-ml/opik), [LangSmith](https://www.langchain.com/langsmith), [Braintrust](https://www.braintrust.dev), [W&B Weave](https://github.com/wandb/weave), [MLflow](https://github.com/mlflow/mlflow) | Verdicts and `Score` records your app can send there; deterministic ones can be re-derived from stored facts at any time. |
-| Large catalogs of ready-made metrics | [DeepEval](https://github.com/confident-ai/deepeval), [Ragas](https://github.com/vibrantlabsai/ragas), [TruLens](https://github.com/truera/trulens), [OpenEvals](https://github.com/langchain-ai/openevals), [AutoEvals](https://github.com/braintrustdata/autoevals) | Depth over breadth: a closed failure taxonomy for answers with a known key, and judges that pass calibration before they score. |
-| Prompt tests and red-teaming in CI | [promptfoo](https://github.com/promptfoo/promptfoo), [Giskard](https://github.com/Giskard-AI/giskard-oss) | Plain Python that any runner — pytest, a CI job, or another framework's custom grader — can call. |
-| Benchmarking models on public suites | [Inspect](https://github.com/UKGovernmentBEIS/inspect_ai), [OpenAI Evals](https://github.com/openai/evals), [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness), [HELM](https://github.com/stanford-crfm/helm) | The same rigor for *your product's* cases: the answers your users actually depend on. |
+- **Gate releases on answers, not vibes.** Project each agent answer into an
+  `Observation`, compare it with its answer key, and fail the build on any
+  `silent_wrong`. The verdict names the subtype — missing items, wrong order,
+  an execution that should have been a refusal — and carries the evidence.
+- **Run benchmarks you can defend.** Freeze the configuration, corpus, and
+  source hashes before the run starts. Checkpoint every case in the
+  append-only ledger, so a crashed run resumes instead of starting over. Apply
+  the ⌈2n/3⌉ stability bar to repeated attempts. Diff the run against its
+  baseline only when both were graded by the same ruler.
+- **Put an LLM judge into production safely.** Wrap the model client your app
+  already uses, calibrate the judge against hand-labelled examples, and let it
+  score only after it passes. Start from the bundled hallucination, tool-use,
+  and user-friction rubrics, or write your own. Every score records the
+  calibration that licensed it.
+- **Score production traces in one shape.** Deterministic checks, calibrated
+  judges, and human reviews all produce the same `Score` record, with
+  idempotent row IDs for your own tables.
+- **Change the evaluator without losing history.** Re-score stored runs
+  offline through the old and the new implementation and require identical
+  verdicts — no model calls, no database, no re-execution. When the rules
+  genuinely improve, re-derive every historical verdict under the new ones.
+- **Keep golden corpora honest.** A corpus manifest refuses to load when a case
+  is missing, a review is incomplete, or a reviewer is a placeholder.
 
-**Standing on Phoenix's shoulders.** Canary borrows three ideas from
-[Arize Phoenix](https://github.com/Arize-ai/phoenix): scores that declare
-whether higher or lower is better, closed-choice classifier judges, and five of
-Phoenix's judge rubrics, which ship as attributed seeds under their original
-Elastic License 2.0. Canary adds the calibration gate
-that keeps a seed from scoring until it agrees with your data.
+## Comparing Canary with similar projects
+
+Every project in this section evaluates LLM apps and agents with model judges
+and code checks, and so does Canary. What differs is shape and focus. The
+others are platforms and frameworks that trace your app, run your test suites,
+or bring broad catalogs of ready-made metrics. Canary is a small library that
+lives inside the code you already have, and it spends its effort on one
+question: can you trust the verdict?
+
+### At a glance
+
+| Project | What it is | License | Runs as | Languages |
+| --- | --- | --- | --- | --- |
+| **Canary** | Evaluation kernel for LLM apps and agents | MIT | A library inside your code; no server | Python |
+| [Arize Phoenix](https://github.com/Arize-ai/phoenix) | AI observability and evaluation platform | Elastic License 2.0; client libraries Apache-2.0 | Server with a web UI, self-hosted or cloud; its eval library also runs alone | Python, TypeScript |
+| [Langfuse](https://github.com/langfuse/langfuse) | LLM engineering platform for tracing and evaluation | MIT; enterprise features commercial | Server with a web UI, self-hosted or cloud, plus SDKs | Python, TypeScript |
+| [DeepEval](https://github.com/confident-ai/deepeval) | LLM evaluation framework | Apache-2.0 | Library and CLI; optional hosted platform, Confident AI | Python, TypeScript |
+| [Ragas](https://github.com/vibrantlabsai/ragas) | Toolkit for evaluating and optimizing LLM apps | Apache-2.0 | Library and CLI | Python |
+| [promptfoo](https://github.com/promptfoo/promptfoo) | CLI and library for evaluating and red-teaming LLM apps | MIT | CLI with a local web viewer; paid enterprise edition | TypeScript, with Python hooks |
+| [Inspect](https://github.com/UKGovernmentBEIS/inspect_ai) | Framework for frontier AI evaluations, from the UK AI Security Institute | MIT | Library and CLI with a local log viewer | Python |
+
+### Feature by feature
+
+✅ built in · — not built in · a word or two: partly there, a recipe you build
+yourself, or only in a hosted, beta, or companion product
+
+| | Canary | Phoenix | Langfuse | DeepEval | Ragas | promptfoo | Inspect |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| **Scoring** | | | | | | | |
+| LLM-as-a-judge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Code checks | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ready-made scorers | 6 metrics, 5 rubrics | 16 | ~24 | 50+ | ~30 | ~60 | 12 |
+| Answer keys for result sets, totals, and rankings | ✅ | — | — | — | SQL and ID sets | — | — |
+| Typed failure taxonomy | ✅ | — | — | — | — | factuality only | partial |
+| **Trusting the judge** | | | | | | | |
+| Measures judge agreement with human labels | ✅ | cookbook | ✅ beta | hosted | partial | manual | partial |
+| Judge must pass calibration before it scores | ✅ | — | — | — | — | — | — |
+| **Trusting the comparison** | | | | | | | |
+| Re-scores stored outputs without rerunning the app | ✅ | ✅ | ✅ | ✅ | ✅ | partial | ✅ |
+| Compares runs case by case | ✅ | ✅ | ✅ | hosted | totals only | ✅ | via dataframes |
+| Refuses to compare runs graded differently | ✅ | — | — | hosted | — | dataset only | — |
+| Pre-registers a run: config, data, and code hashes frozen first | ✅ | — | — | — | — | — | — |
+| Separates luck from progress over repeated trials | ✅ | repeats only | — | repeats only | — | repeats only | ✅ |
+| **Beyond scoring** | | | | | | | |
+| Tracing and dashboards | — | ✅ | ✅ | hosted | — | local viewer | local viewer |
+| Human annotation UI | — | ✅ | ✅ | hosted | — | partial | partial |
+| Red teaming | — | — | — | add-on | — | ✅ | static suites |
+| Public benchmarks | — | — | — | ✅ | — | partial | ✅ |
+| Synthetic test data | — | — | — | ✅ | ✅ | beta | — |
+| **Footprint** | | | | | | | |
+| No telemetry by default | ✅ | opt-out | opt-out | opt-out | opt-out | opt-out | ✅ |
+| Agent skill or MCP server | ✅ | ✅ | ✅ | ✅ | — | ✅ | companion |
+
+### Where Canary stands out
+
+- **Every failure has a name.** Canary sorts each result into `correct`,
+  `loud_fail`, or `silent_wrong`, with fourteen closed subtypes and separate
+  safety flags. It checks returned sets, totals, and rankings against answer
+  keys and scores sets by precision, recall, and F1. Elsewhere a failure is
+  usually a low score or a `false`; promptfoo's factuality grader and Inspect's
+  score reasons come closest.
+- **A judge has to earn its vote.** Langfuse and DeepEval's hosted platform
+  measure how often a judge agrees with human labels. Canary is the only
+  project here where a judge cannot score at all until it passes that test.
+- **Diffs that know when they mean nothing.** Canary refuses to diff two runs
+  when the judge, rubric, taxonomy, or frozen inputs changed between them.
+  promptfoo checks that the test set matches, and DeepEval's hosted experiments
+  check the dataset and metric collection; the rest leave it to you.
+- **Experiments you can defend.** Freezes record the config, corpus, and source
+  hashes before a run starts, and a ⌈2n/3⌉ stability bar separates luck from
+  progress. Inspect is the only other project here with built-in
+  repeated-trial statistics.
+- **Nothing to deploy, nothing phoning home.** One runtime dependency
+  (Pydantic), no server, and no telemetry. The test suite enforces that the
+  library makes no network calls and reads no API keys.
+
+### Where others go further
+
+- **Observability and review.** Phoenix and Langfuse trace every call, chart
+  it, and give reviewers an annotation UI. Langfuse adds annotation queues and
+  scores live production traffic.
+- **Metric breadth.** promptfoo (about 60), DeepEval (50+), and Ragas (about
+  30) ship ready-made metrics for RAG, agents, conversations, and safety.
+- **Red teaming.** promptfoo generates attacks across 150+ plugins, and
+  DeepEval's companion DeepTeam covers dozens of vulnerabilities.
+- **Benchmarks and sandboxes.** Inspect runs hundreds of public benchmarks and
+  sandboxed agent evaluations; DeepEval bundles MMLU, GSM8K, HumanEval, and
+  more.
+- **Test data.** Ragas and DeepEval synthesize test sets from your documents.
+- **Other languages.** Phoenix, Langfuse, DeepEval, and promptfoo also work
+  from TypeScript.
+
+### Also in this space
+
+Open source: [OpenAI Evals](https://github.com/openai/evals),
+[lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness),
+[HELM](https://github.com/stanford-crfm/helm),
+[TruLens](https://github.com/truera/trulens),
+[Opik](https://github.com/comet-ml/opik),
+[MLflow](https://github.com/mlflow/mlflow),
+[W&B Weave](https://github.com/wandb/weave),
+[autoevals](https://github.com/braintrustdata/autoevals),
+[OpenEvals](https://github.com/langchain-ai/openevals), and
+[Giskard](https://github.com/Giskard-AI/giskard-oss). Hosted:
+[LangSmith](https://www.langchain.com/langsmith) and
+[Braintrust](https://www.braintrust.dev).
+
+Compared on 2026-09-25 against Phoenix 20.16.0, Langfuse 4.45.4, DeepEval
+4.2.6, Ragas 0.4.3, promptfoo 0.123.1, and Inspect 0.3.268, from each
+project's documentation and source code. These projects move fast. If a cell
+is out of date, please [open an issue](https://github.com/skrivov/canary/issues).
 
 ## What Canary is not
 
 Honest limits, so you can choose well:
 
 - **Not an observability platform.** No tracing, no UI, no hosted service.
-  Pair it with one of the platforms above.
+  The comparison above shows which projects provide them.
 - **Not a benchmark or dataset hub.** You bring the cases and answer keys.
 - **Not a red-teaming tool.** It grades behavior; it doesn't generate attacks.
 - **Not batteries-included for every metric.** There's no embedding
@@ -301,26 +518,12 @@ Honest limits, so you can choose well:
 - [Integration guide](docs/integration.md) — installing into an existing
   environment, model adapters, and API keys.
 - [Examples](examples/) — runnable quickstarts and provider adapters.
+- [Agent skill](skills/canary-evals/SKILL.md) — the `canary-evals` skill for
+  coding agents, with its API reference and workflows.
 - [Design](docs/design.md) — the invariants and why they exist.
 - [Changelog](CHANGELOG.md) — releases and migrations.
 - [Security policy](SECURITY.md) — reporting vulnerabilities and handling
   secrets.
-
-## Works with coding agents
-
-The [Canary Evaluations skill](skills/canary-evals/SKILL.md) teaches Codex how
-to install Canary safely, pick the right API, re-score history, calibrate
-judges, and verify the installed package. Copy it into your Codex skills
-directory:
-
-```bash
-canary_skill_root="${CODEX_HOME:-$HOME/.codex}/skills"
-mkdir -p "$canary_skill_root"
-test ! -e "$canary_skill_root/canary-evals"
-cp -R skills/canary-evals "$canary_skill_root/canary-evals"
-```
-
-Then invoke it as `$canary-evals`, or let Codex discover it.
 
 ## Develop Canary
 
@@ -341,6 +544,12 @@ All communication about Canary happens in this repository. Open an
 [issue](https://github.com/skrivov/canary/issues) for questions, bugs, and
 feature requests. Report vulnerabilities privately as described in
 [SECURITY.md](SECURITY.md) — never in a public issue.
+
+## Acknowledgments
+
+Canary's score `direction` field and its closed-choice judges follow the
+design of [Arize Phoenix](https://github.com/Arize-ai/phoenix)'s evaluators,
+and its five rubric seeds are adapted from Phoenix's judge templates.
 
 ## License
 
